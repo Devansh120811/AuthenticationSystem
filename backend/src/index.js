@@ -6,7 +6,7 @@ dotenv.config({
 })
 
 dbConnect().then(() => {
-    app.listen(() => {
+    app.listen(process.env.PORT,() => {
         console.log(`App listening at PORT ${process.env.PORT}`)
     })
 }).catch((e) => {
