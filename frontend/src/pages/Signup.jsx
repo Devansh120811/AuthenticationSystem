@@ -5,38 +5,34 @@ import { Loader2 } from "lucide-react";
 import { assets } from "../assets/assets.js";
 import { useDispatch } from "react-redux";
 import axios from "axios";
-import { login } from "../store/authSlice.js";
+import { signup } from "../store/authSlice.js";
+
 function Signup() {
   const [Username, setUsername] = useState("");
   const [CheckingUsername, setCheckingUsername] = useState(false);
   const [UsernameMessage, setUsernameMessage] = useState("");
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com)$/;
       const passwordRegex =
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
       if (!Username.trim()) {
-        return toast.error("Username is required!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
+        return toast.error("Username is required!", { position: "top-right", autoClose: 3000 });
       }
       if (!email.trim()) {
-        return toast.error("Email is required!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
+        return toast.error("Email is required!", { position: "top-right", autoClose: 3000 });
       }
       if (!pass.trim()) {
-        return toast.error("Password is required!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
+        return toast.error("Password is required!", { position: "top-right", autoClose: 3000 });
       }
       if (!emailRegex.test(email)) {
         return toast.error("Invalid email format! Email must end with .com", {
@@ -47,38 +43,42 @@ function Signup() {
       if (!passwordRegex.test(pass)) {
         return toast.error(
           "Password must have at least one uppercase, one lowercase, one number, and one special character!",
-          {
-            position: "top-right",
-            autoClose: 3000,
-          }
+          { position: "top-right", autoClose: 3000 }
         );
       }
 
+      setLoading(true);
       const response = await axios.post("http://localhost:8000/register", {
         username: Username,
         email,
         password: pass,
       });
+
       if (response.data.success === true) {
         const accessToken = response.data.userData.accessToken;
-        const expiresIn = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+        const expiresIn = 7 * 24 * 60 * 60 * 1000; // 7 days
         const expiryTime = Date.now() + expiresIn;
+
         window.localStorage.setItem("accessToken", accessToken);
         window.localStorage.setItem("tokenExpiry", expiryTime);
+
         toast.success(response.data.message);
-        dispatch(login(response.data.userData));
+        dispatch(signup(response.data.userData));
         navigate("/");
       } else {
         toast.error(response.data.message);
       }
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setLoading(false);
     }
   };
+
   useEffect(() => {
     const checkUsernameUnique = async () => {
       if (Username === "") {
-        setUsernameMessage(""); // Clear message when input is empty
+        setUsernameMessage("");
         setCheckingUsername(false);
         return;
       }
@@ -97,6 +97,7 @@ function Signup() {
     };
     checkUsernameUnique();
   }, [Username]);
+
   return (
     <div className="flex items-center justify-center min-h-screen px-6 sm:px-0 bg-gradient-to-br from-blue-200 to-purple-400">
       <img
@@ -121,15 +122,14 @@ function Signup() {
               onChange={(e) => setUsername(e.target.value)}
             />
           </div>
-          {CheckingUsername && <Loader2 className="animate-spin" />}
           {(CheckingUsername || UsernameMessage) && (
             <p
-              className={`text-sm ${
-                UsernameMessage === "Username is unique"
+              className={`flex items-center gap-2 text-sm ${UsernameMessage === "Username is unique"
                   ? "text-green-500"
                   : "text-red-500"
-              }`}
+                }`}
             >
+              {CheckingUsername && <Loader2 className="animate-spin w-4 h-4" />}
               {CheckingUsername ? "Checking username..." : UsernameMessage}
             </p>
           )}
@@ -160,10 +160,12 @@ function Signup() {
             Forgot Password?
           </p>
           <button
-            className="cursor-pointer py-2.5 w-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white font-medium"
+            className="cursor-pointer py-2.5 w-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white font-medium flex items-center justify-center gap-2"
             type="submit"
+            disabled={loading}
           >
-            Signup
+            {loading && <Loader2 className="animate-spin w-5 h-5" />}
+            {loading ? "Signing up..." : "Signup"}
           </button>
         </form>
         <p className="text-gray-400 text-center text-xs mt-4">

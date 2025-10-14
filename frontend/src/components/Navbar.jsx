@@ -1,70 +1,104 @@
-import React,{useEffect} from "react";
+import React, { useEffect, useState } from "react";
 import { assets } from "../assets/assets.js";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { LogOut } from "lucide-react";
-import {toast} from 'react-toastify'
-import { logout,fetchUserData } from "../store/authSlice.js";
+import { toast } from "react-toastify";
+import { logout, fetchUserData } from "../store/authSlice.js";
 import axios from "axios";
 
 function Navbar() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const authStatus = useSelector((state) => state.auth.status);
-  // console.log(authStatus)
   const userData = useSelector((state) => state.auth.userData);
-  const accessToken = window.localStorage.getItem("accessToken")
+  const accessToken = window.localStorage.getItem("accessToken");
+
+  const [menuOpen, setMenuOpen] = useState(false); // mobile toggle
+
   const config = {
     headers: {
-        Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
     },
-};
-useEffect(()=>{
-dispatch(fetchUserData())
-},[dispatch])
-// console.log(userData)
+  };
+
+  useEffect(() => {
+    dispatch(fetchUserData());
+  }, [dispatch]);
+
   const handleLogin = (e) => {
     e.preventDefault();
     navigate("/login");
   };
+
   const handleLogout = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.get('http://localhost:8000/logout',config)
-      if(response.data.success === true){    
-        toast.success(response.data.message)
+      const response = await axios.get("http://localhost:8000/logout", config);
+      if (response.data.success === true) {
+        toast.success(response.data.message);
         dispatch(logout());
-        navigate('/')
+        navigate("/");
+      } else {
+        toast.error(response.data.message);
       }
-      else{
-        toast.error(response.data.message)
-      }   
     } catch (error) {
-      toast.error(error.message)
+      toast.error(error.message);
     }
   };
+
   return (
     <div className="flex w-full justify-between items-center p-4 sm:p-6 sm:px-24 absolute top-0">
-      <img src={assets.logo} alt="" className="w-28 sm:w-32 cursor-pointer" />
+      {/* Logo */}
+      <img
+        src={assets.logo}
+        alt="Logo"
+        className="w-28 sm:w-32 cursor-pointer"
+        onClick={() => navigate("/")}
+      />
+
       {authStatus ? (
-        <div className="w-8 h-8 flex justify-center items-center rounded-full bg-black text-white relative group cursor-pointer">
-          {userData.username[0].toUpperCase()}
-          <div className="absolute hidden group-hover:block top-0 right-0 z-10 text-black rounded pt-10">
-            <ul className="list-none m-0 p-2 bg-gray-100 text-sm">
+        <div
+          className="relative group"
+          onMouseLeave={() => setMenuOpen(false)}
+        >
+          {/* Avatar */}
+          <button
+            className="w-9 h-9 flex justify-center items-center rounded-full bg-black text-white cursor-pointer"
+            onClick={() => setMenuOpen((prev) => !prev)} // toggle on mobile
+          >
+            {userData?.username?.[0]?.toUpperCase()}
+          </button>
+
+          {/* Dropdown Menu */}
+          <div
+            className={`
+              absolute right-0 mt-2 z-10 bg-white rounded shadow-md text-sm
+              ${menuOpen ? "block" : "hidden"}  /* mobile toggle */
+              sm:group-hover:block             /* desktop hover */
+            `}
+          >
+            <ul className="list-none m-0 p-2 min-w-[140px]">
               {!userData.IsAccountVerified && (
                 <li
-                  className="py-1 px-2 hover:bg-gray-200 cursor-pointer"
-                  onClick={() => navigate(`/verify-email/${userData.username}`)}
+                  className="py-1 px-3 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => {
+                    navigate(`/verify-email/${userData.username}`);
+                    setMenuOpen(false);
+                  }}
                 >
                   Verify Email
                 </li>
               )}
               <li
-                className="py-1 px-2 hover:bg-gray-200 cursor-pointer pr-10 flex gap-1.5"
-                onClick={handleLogout}
+                className="py-1 px-3 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
+                onClick={(e) => {
+                  handleLogout(e);
+                  setMenuOpen(false);
+                }}
               >
                 Logout
-                <LogOut size={20} />
+                <LogOut size={18} />
               </li>
             </ul>
           </div>

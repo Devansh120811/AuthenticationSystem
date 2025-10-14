@@ -13,7 +13,6 @@ import App from "./App.jsx";
 import Login from "./pages/Login.jsx";
 import VerifyEmail from "./pages/VerifyEmail.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
-import UpdatePassword from "./pages/UpdatePassword.jsx";
 import { ToastContainer } from "react-toastify";
 import Signup from "./pages/Signup.jsx";
 
@@ -26,7 +25,6 @@ const router = createBrowserRouter(
       <Route path="signup" element={<Signup />} />
       <Route path="verify-email/:username" element={<VerifyEmail />} />
       <Route path="forgotpass" element={<ForgotPassword />} />
-      <Route path="updatepass" element={<UpdatePassword />} />
     </Route>
   )
 );

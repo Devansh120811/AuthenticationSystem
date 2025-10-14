@@ -5,50 +5,43 @@ import { fetchUserData } from "../store/authSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { Loader2 } from "lucide-react"; // 👈 spinner import
 
 function VerifyEmail() {
   const { username } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const inputRef = useRef([]);
-  const authStatus = useSelector((state) => state.auth.status);
   const userData = useSelector((state) => state.auth.userData);
-  const [otp, setOtp] = useState(new Array(6).fill("")); // Store OTP digits in state
+  const [otp, setOtp] = useState(new Array(6).fill("")); // Store OTP digits
+  const [loading, setLoading] = useState(false); // 👈 spinner state
+
   useEffect(() => {
-    dispatch(fetchUserData()); // Ensure user data is fetched when component loads
+    dispatch(fetchUserData());
   }, [dispatch]);
 
   useEffect(() => {
-    if (authStatus && userData) {
+    if (userData.isAccountVerified) {
       navigate("/");
     }
-  }, [authStatus, userData, navigate]);
+  }, [userData, navigate]);
+
   const handleInput = (e, index) => {
     const value = e.target.value;
-
-    // Allow only numeric input
     if (!/^[0-9]?$/.test(value)) return;
-
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-
-    // Move to next input field if a digit is entered
-    if (value && index < 5) {
-      inputRef.current[index + 1].focus();
-    }
+    if (value && index < 5) inputRef.current[index + 1].focus();
   };
 
   const handleKeyDown = (e, index) => {
+    const newOtp = [...otp];
     if (e.key === "Backspace") {
-      const newOtp = [...otp];
-
       if (newOtp[index] !== "") {
-        // Delete the current input first
         newOtp[index] = "";
         setOtp(newOtp);
       } else if (index > 0) {
-        // Move focus back and delete the previous digit
         inputRef.current[index - 1].focus();
         newOtp[index - 1] = "";
         setOtp(newOtp);
@@ -62,33 +55,24 @@ function VerifyEmail() {
 
   const handlePaste = (e) => {
     const paste = e.clipboardData.getData("text").slice(0, 6);
-    if (!/^\d{6}$/.test(paste)) return; // Validate that only digits are pasted
-
+    if (!/^\d{6}$/.test(paste)) return;
     const pasteArray = paste.split("");
     setOtp(pasteArray);
-
-    // Autofocus the last filled box
     pasteArray.forEach((char, index) => {
-      if (inputRef.current[index]) {
-        inputRef.current[index].value = char;
-      }
+      if (inputRef.current[index]) inputRef.current[index].value = char;
     });
-
-    inputRef.current[5]?.focus(); // Move focus to the last box
+    inputRef.current[5]?.focus();
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (otp.includes("")) {
-      return toast.error("OTP is required!", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      return toast.error("OTP is required!", { position: "top-right", autoClose: 3000 });
     }
 
+    setLoading(true); // 👈 start spinner
     const otpString = otp.join("");
-    console.log("OTP entered:", otpString);
 
     try {
       const response = await axios.post(
@@ -103,6 +87,8 @@ function VerifyEmail() {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Something went wrong");
+    } finally {
+      setLoading(false); // 👈 stop spinner
     }
   };
 
@@ -140,9 +126,11 @@ function VerifyEmail() {
         </div>
         <button
           type="submit"
-          className="w-full py-3 bg-gradient-to-r from-indigo-500 to-indigo-900 text-white rounded-full cursor-pointer"
+          className="w-full py-3 bg-gradient-to-r from-indigo-500 to-indigo-900 text-white rounded-full flex justify-center items-center gap-2"
+          disabled={loading} // disable button when loading
         >
-          Verify Email
+          {loading && <Loader2 className="animate-spin w-5 h-5" />}
+          {loading ? "Verifying..." : "Verify Email"}
         </button>
       </form>
     </div>

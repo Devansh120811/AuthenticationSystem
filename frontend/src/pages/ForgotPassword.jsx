@@ -5,6 +5,8 @@ import { toast } from "react-toastify";
 import { fetchUserData } from "../store/authSlice.js";
 import { useSelector, useDispatch } from "react-redux";
 import axios from "axios";
+import { Loader2 } from "lucide-react"; // ✅ import spinner
+
 function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -12,24 +14,24 @@ function ForgotPassword() {
   const [otp, setOtp] = useState(new Array(6).fill(""));
   const [isEmailSent, setIsEmailsent] = useState(false);
   const [isOTPSubmitted, setIsOTPSubmitted] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [loading, setLoading] = useState(false); // ✅ loading state
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
   useEffect(() => {
     dispatch(fetchUserData());
   }, [dispatch]);
+
   const userData = useSelector((state) => state.auth.userData);
 
   const handleInput = (e, index) => {
     const value = e.target.value;
-
-    // Allow only numeric input
     if (!/^[0-9]?$/.test(value)) return;
-
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-
-    // Move to next input field if a digit is entered
     if (value && index < 5) {
       inputRef.current[index + 1].focus();
     }
@@ -38,13 +40,10 @@ function ForgotPassword() {
   const handleKeyDown = (e, index) => {
     if (e.key === "Backspace") {
       const newOtp = [...otp];
-
       if (newOtp[index] !== "") {
-        // Delete the current input first
         newOtp[index] = "";
         setOtp(newOtp);
       } else if (index > 0) {
-        // Move focus back and delete the previous digit
         inputRef.current[index - 1].focus();
         newOtp[index - 1] = "";
         setOtp(newOtp);
@@ -58,28 +57,22 @@ function ForgotPassword() {
 
   const handlePaste = (e) => {
     const paste = e.clipboardData.getData("text").slice(0, 6);
-    if (!/^\d{6}$/.test(paste)) return; // Validate that only digits are pasted
-
+    if (!/^\d{6}$/.test(paste)) return;
     const pasteArray = paste.split("");
     setOtp(pasteArray);
-
-    // Autofocus the last filled box
     pasteArray.forEach((char, index) => {
       if (inputRef.current[index]) {
         inputRef.current[index].value = char;
       }
     });
-
-    inputRef.current[5]?.focus(); // Move focus to the last box
+    inputRef.current[5]?.focus();
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com)$/;
     if (!email.trim()) {
-      return toast.error("Email is required!", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      return toast.error("Email is required!", { position: "top-right", autoClose: 3000 });
     }
     if (!emailRegex.test(email)) {
       return toast.error("Invalid email format! Email must end with .com", {
@@ -88,50 +81,47 @@ function ForgotPassword() {
       });
     }
     try {
-      const response = await axios.post(
-        "http://localhost:8000/forgot-password",
-        { email }
-      );
+      setLoading(true);
+      const response = await axios.post("http://localhost:8000/forgot-password", { email });
       if (response.data.success) {
         toast.success(response.data.message);
-        setIsEmailsent(true)
+        setUserName(response.data.user.username);
+        setIsEmailsent(true);
       } else {
         toast.error(response.data.message);
       }
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setLoading(false);
     }
   };
+
   const handleSubmitOTP = async (e) => {
     e.preventDefault();
-
     if (otp.includes("")) {
-      return toast.error("OTP is required!", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      return toast.error("OTP is required!", { position: "top-right", autoClose: 3000 });
     }
-
     const otpString = otp.join("");
-    console.log("OTP entered:", otpString);
-
     try {
+      setLoading(true);
       const response = await axios.post(
-        `http://localhost:8000/forgot-password/verify/${userData.username}`,
+        `http://localhost:8000/forgot-password/verify/${userName}`,
         { otp: otpString }
       );
-      if(response.data.success === true){
-
+      if (response.data.success === true) {
         toast.success(response.data.message);
-        setIsOTPSubmitted(true)
-      }
-      else{
-        toast.error(response.data.message)
+        setIsOTPSubmitted(true);
+      } else {
+        toast.error(response.data.message);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Something went wrong");
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
     }
   };
+
   const handleSubmitPass = async (e) => {
     e.preventDefault();
     const passwordRegex =
@@ -145,15 +135,13 @@ function ForgotPassword() {
     if (!passwordRegex.test(newPassword)) {
       return toast.error(
         "Password must have at least one uppercase, one lowercase, one number, and one special character!",
-        {
-          position: "top-right",
-          autoClose: 3000,
-        }
+        { position: "top-right", autoClose: 3000 }
       );
     }
     try {
+      setLoading(true);
       const response = await axios.post(
-        `http://localhost:8000/forgot-password/${userData.username}`,
+        `http://localhost:8000/forgot-password/${userName}`,
         { password: newPassword }
       );
       if (response.data.success) {
@@ -163,10 +151,12 @@ function ForgotPassword() {
         toast.error(response.data.message);
       }
     } catch (error) {
-      // console.log(error)
-      toast.error(error);
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
     }
   };
+
   return (
     <div className="flex items-center justify-center min-h-screen px-6 sm:px-0 bg-gradient-to-br from-blue-200 to-purple-400">
       <img
@@ -175,6 +165,8 @@ function ForgotPassword() {
         alt=""
         className="absolute left-5 sm:left-20 top-5 w-28 sm:w-32 cursor-pointer"
       />
+
+      {/* Email Form */}
       {!isEmailSent && (
         <form
           className="bg-slate-900 p-8 rounded-lg shadow-lg w-96 text-sm"
@@ -197,15 +189,17 @@ function ForgotPassword() {
             />
           </div>
           <button
-            className="cursor-pointer py-2.5 w-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white font-medium"
+            className="cursor-pointer py-2.5 w-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white font-medium flex justify-center items-center gap-2"
             type="submit"
+            disabled={loading}
           >
-            Submit
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Submit"}
           </button>
         </form>
       )}
+
+      {/* OTP Form */}
       {!isOTPSubmitted && isEmailSent && (
-        // Enter OTP Form
         <form
           className="bg-slate-900 p-8 rounded-lg shadow-lg w-96 text-sm"
           onSubmit={handleSubmitOTP}
@@ -232,14 +226,16 @@ function ForgotPassword() {
           </div>
           <button
             type="submit"
-            className="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-900 text-white rounded-full cursor-pointer"
+            disabled={loading}
+            className="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-900 text-white rounded-full cursor-pointer flex justify-center items-center gap-2"
           >
-            Submit
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Submit"}
           </button>
         </form>
       )}
+
+      {/* New Password Form */}
       {isOTPSubmitted && isEmailSent && (
-        // Enter new Pass
         <form
           className="bg-slate-900 p-8 rounded-lg shadow-lg w-96 text-sm"
           onSubmit={handleSubmitPass}
@@ -261,10 +257,11 @@ function ForgotPassword() {
             />
           </div>
           <button
-            className="cursor-pointer py-2.5 w-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white font-medium"
+            className="cursor-pointer py-2.5 w-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white font-medium flex justify-center items-center gap-2"
             type="submit"
+            disabled={loading}
           >
-            Submit
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Submit"}
           </button>
         </form>
       )}
