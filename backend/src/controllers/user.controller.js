@@ -58,7 +58,7 @@ const register = async (req, res) => {
       maxAge: 10 * 24 * 60 * 60 * 1000
     }
     if (response.success === true) {
-      return res.status(201).cookie('accessToken',accessToken,options).json({ success: true, message: "User Registered Successfully. Please verify the Email", userData: { username: user.username, IsAccountVerified: user.IsAccountVerified,accessToken } })
+      return res.status(201).cookie('accessToken', accessToken, options).json({ success: true, message: "User Registered Successfully. Please verify the Email", userData: { username: user.username, IsAccountVerified: user.IsAccountVerified, accessToken } })
     }
   } catch (error) {
     // console.log(error)
@@ -96,7 +96,7 @@ const login = async (req, res) => {
     return res.status(200).cookie('accessToken', accessToken, options).json({ success: true, message: "User logged in Successfully", userData: { username: user.username, IsAccountVerified: user.IsAccountVerified, accessToken } })
   } catch (error) {
     // console.log(error)
-    return res.json({ success: false, message:'Error while Login' })
+    return res.json({ success: false, message: 'Error while Login' })
   }
 }
 const logout = async (req, res) => {
@@ -179,7 +179,7 @@ const forgotPassword = async (req, res) => {
     await user.save()
     const response = await sendVerificationEmailForgotPassword(email, otp, res)
     if (response.success === true) {
-      return res.status(201).json({ success: true, message: response.message })
+      return res.status(201).json({ success: true, message: response.message,user:user })
     }
   } catch (error) {
     console.log(error)
@@ -193,7 +193,7 @@ const resetPasswordOTP = async (req, res) => {
     return res.json({ success: false, message: "Otp is Required" })
   }
   try {
-    const user = await User.findOne({ username})
+    const user = await User.findOne({ username })
     if (!user) {
       return res.json({ success: false, message: "User does not exists" })
     }
@@ -219,10 +219,10 @@ const resetPasswordOTP = async (req, res) => {
 }
 const updatePassword = async (req, res) => {
   const { password } = req.body
-  const { username } = req.params 
+  const { username } = req.params
   // console.log(password,username)
   try {
-    const user = await User.findOne({ username})
+    const user = await User.findOne({ username })
     if (!user) {
       return res.json({ success: false, message: "User does not exists" })
     }
