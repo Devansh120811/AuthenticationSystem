@@ -24,7 +24,16 @@ function ForgotPassword() {
     dispatch(fetchUserData());
   }, [dispatch]);
 
-  const userData = useSelector((state) => state.auth.userData);
+  useEffect(() => {
+    const savedState = localStorage.getItem("forgotPasswordState");
+    if (savedState) {
+      const parsed = JSON.parse(savedState);
+      setIsEmailsent(parsed.isEmailSent);
+      setIsOTPSubmitted(parsed.isOTPSubmitted);
+      setUserName(parsed.userName);
+    }
+  }, []);
+
 
   const handleInput = (e, index) => {
     const value = e.target.value;
@@ -87,6 +96,14 @@ function ForgotPassword() {
         toast.success(response.data.message);
         setUserName(response.data.user.username);
         setIsEmailsent(true);
+        localStorage.setItem(
+          "forgotPasswordState",
+          JSON.stringify({
+            isEmailSent: true,
+            isOTPSubmitted: false,
+            userName: response.data.user.username,
+          })
+        );
       } else {
         toast.error(response.data.message);
       }
@@ -112,6 +129,14 @@ function ForgotPassword() {
       if (response.data.success === true) {
         toast.success(response.data.message);
         setIsOTPSubmitted(true);
+        localStorage.setItem(
+          "forgotPasswordState",
+          JSON.stringify({
+            isEmailSent: true,
+            isOTPSubmitted: true,
+            userName: userName,
+          })
+        );
       } else {
         toast.error(response.data.message);
       }
@@ -146,6 +171,7 @@ function ForgotPassword() {
       );
       if (response.data.success) {
         toast.success(response.data.message);
+        localStorage.removeItem("forgotPasswordState");
         navigate(`/login`);
       } else {
         toast.error(response.data.message);
